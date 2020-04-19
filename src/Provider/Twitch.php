@@ -10,15 +10,9 @@ use Psr\Http\Message\ResponseInterface;
 
 class Twitch extends AbstractProvider
 {
-
-    /**
-     * Api domain
-     *
-     * @var string
-     */
-    public $apiDomain = 'https://api.twitch.tv';
-
-    public $scopes = [ 'user_read' ];
+    const API_DOMAIN = 'https://id.twitch.tv';
+    const AUTHORIZE_URL = self::API_DOMAIN . '/oauth2/authorize';
+    const TOKEN_URL = self::API_DOMAIN . '/oauth2/token';
 
     /**
      * Get authorization url to begin OAuth flow
@@ -27,7 +21,7 @@ class Twitch extends AbstractProvider
      */
     public function getBaseAuthorizationUrl()
     {
-        return $this->apiDomain.'/kraken/oauth2/authorize';
+        return self::AUTHORIZE_URL;
     }
 
     /**
@@ -39,7 +33,7 @@ class Twitch extends AbstractProvider
      */
     public function getBaseAccessTokenUrl(array $params)
     {
-        return $this->apiDomain.'/kraken/oauth2/token';
+        return self::TOKEN_URL;
     }
 
     /**
@@ -63,7 +57,7 @@ class Twitch extends AbstractProvider
      */
     public function getAuthenticatedUrlForEndpoint($endpoint, AccessToken $token)
     {
-        return $this->apiDomain.$endpoint.'?oauth_token='.$token->getToken();
+        return self::API_DOMAIN.$endpoint.'?oauth_token='.$token->getToken();
     }
 
     /**
@@ -74,31 +68,17 @@ class Twitch extends AbstractProvider
      */
     public function getUrlForEndpoint($endpoint)
     {
-        return $this->apiDomain.$endpoint;
+        return self::API_DOMAIN.$endpoint;
     }
 
-    /**
-     * Returns the string that should be used to separate scopes when building
-     * the URL for requesting an access token.
-     *
-     * @return string Scope separator
-     */
     protected function getScopeSeparator()
     {
         return ' ';
     }
 
-    /**
-     * Get the default scopes used by this provider.
-     *
-     * This should not be a complete list of all scopes, but the minimum
-     * required for the provider user interface!
-     *
-     * @return array
-     */
     protected function getDefaultScopes()
     {
-        return $this->scopes;
+        return [];
     }
 
     /**
@@ -114,7 +94,7 @@ class Twitch extends AbstractProvider
         {
             throw TwitchIdentityProviderException::clientException($response, $data);
         }
-        elseif (isset($data['error']))
+        elseif (\array_key_exists('error', $data))
         {
             throw TwitchIdentityProviderException::oauthException($response, $data);
         }
@@ -129,30 +109,6 @@ class Twitch extends AbstractProvider
      */
     protected function createResourceOwner(array $response, AccessToken $token)
     {
-        return new TwitchUser((array)$response);
+        return new TwitchUser((array) $response);
     }
-
-    /**
-     * Since August 8th, 2016 Kraken requires a Client-ID header to be sent
-     *
-     * @return array
-     */
-    protected function getDefaultHeaders()
-    {
-        return ['Client-ID' => $this->clientId, 'Accept' => 'application/vnd.twitchtv.v5+json'];
-    }
-
-    /**
-     * Adds token to headers
-     *
-     * @param AccessToken $token
-     * @return array
-     */
-    protected function getAuthorizationHeaders($token = null) {
-        if(isset($token))
-            return ['Authorization' => 'OAuth '.$token->getToken()];
-        return [];
-    }
-
-
 }
